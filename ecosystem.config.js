@@ -8,6 +8,7 @@ module.exports = {
     autorestart: true,
     watch: false,
     max_memory_restart: '1G',
+    node_args: '--experimental-specifier-resolution=node',
     env: {
       NODE_ENV: 'development',
       PORT: process.env.PORT || 3000
