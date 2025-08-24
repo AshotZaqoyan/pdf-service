@@ -61,7 +61,7 @@ npm install -g pm2
 ### 2. Clone and setup your project:
 
 ```bash
-git clone your-repo pdf-service
+git clone https://github.com/AshotZaqoyan/pdf-service
 cd pdf-service
 npm install --production
 ```
