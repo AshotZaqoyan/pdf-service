@@ -89,6 +89,13 @@ app.get("/auth-status", (req, res) => {
   }
 });
 
+function formatDate(isoDate) {
+  if (!isoDate) return "";
+  const [year, month, day] = isoDate.split("-");
+  return `${day} / ${month} / ${year}`;
+}
+
+
 // Main endpoint: Template + Data → PDF → Drive
 app.post("/upload-pdf", async (req, res) => {
   console.log("Full request body:", req.body);
@@ -125,7 +132,7 @@ app.post("/upload-pdf", async (req, res) => {
       outsideActivities, feadback, giverPosition, giver, previousMonths,
       previousCourses, previousTrips, previousVolunteering, previousTasks,
       currentMonths, currentCourses, currentTrips, currentVolunteering,
-      currentTasks, date
+      currentTasks, date: formatDate(date)
     };
 
     // Replace template placeholders with actual data
