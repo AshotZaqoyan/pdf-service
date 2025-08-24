@@ -131,26 +131,11 @@ app.post("/upload-pdf", async (req, res) => {
     // Replace template placeholders with actual data
     const processedHtml = replaceTemplate(htmlTemplate, templateData);
     
-    // Save processed HTML for debugging
-    const timestamp = Date.now();
-    const htmlFileName = fileName ? `${fileName}_${timestamp}.html` : `processed_${timestamp}.html`;
-    const htmlFilePath = path.join(process.cwd(), 'generated', htmlFileName);
-    
-    // Create generated directory if it doesn't exist
-    const generatedDir = path.join(process.cwd(), 'generated');
-    if (!fs.existsSync(generatedDir)) {
-      fs.mkdirSync(generatedDir, { recursive: true });
-    }
-    
-    // Save processed HTML file
-    fs.writeFileSync(htmlFilePath, processedHtml, 'utf8');
-    console.log(`Processed HTML saved: ${htmlFilePath}`);
-    
     const pdfFileName = fileName ? `${fileName}.pdf` : `document-${Date.now()}.pdf`;
 
     let browser;
     try {
-      browser = await puppeteer.launch({ headless: "new" });
+      browser = await puppeteer.launch({ headless: "new",  executablePath: '/usr/bin/chromium' });
       const page = await browser.newPage();
       await page.setContent(processedHtml, { waitUntil: "networkidle0", timeout: 30000 });
 

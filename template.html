@@ -474,13 +474,13 @@ canvas {
           labels: ['Դասընթացներ', 'Մարզայցեր', 'Կամավորություն(ժամ/օր)', 'Առաջադրանք'],
           datasets: [
             {
-              label: {{previousMonths}},
+              label: '{{previousMonths}}',
               data: [{{previousCourses}}, {{previousTrips}}, {{previousVolunteering}}, {{previousTasks}}].map(transformData),
               backgroundColor: '#e6a800',
               borderRadius: 5
             },
             {
-              label: {{currentMonths}},
+              label: '{{currentMonths}}',
               data: [{{currentCourses}}, {{currentTrips}}, {{currentVolunteering}}, {{currentTasks}}].map(transformData),
               backgroundColor: '#2e7d32',
               borderRadius: 5
