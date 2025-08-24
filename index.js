@@ -3,6 +3,7 @@ import puppeteer from "puppeteer";
 import { PassThrough } from "stream";
 import { google } from "googleapis";
 import fs from "fs";
+import path from "path";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -21,7 +22,6 @@ const oauth2Client = new google.auth.OAuth2(
 
 let tokens = null;
 const drive = google.drive({ version: "v3", auth: oauth2Client });
-// No default folder - files will go to Drive root if no folderId provided
 
 // Load tokens if exist
 if (fs.existsSync("tokens.json")) {
@@ -32,6 +32,25 @@ if (fs.existsSync("tokens.json")) {
   } catch (err) {
     console.error("Failed to load tokens:", err.message);
   }
+}
+
+// Template replacement function
+function replaceTemplate(template, data) {
+  return template.replace(/{{\s*(\w+)\s*}}/g, (_, key) => {
+    let value = data[key];
+    if (value === undefined) return `{{${key}}}`;
+
+    // Եթե key-ը interests կամ webinars, յուրաքանչյուր տողը <li>
+    if (key === 'interests' || key === 'webinars') {
+      return value
+        .split('\n')
+        .map(line => `<li>${line.replace(/^- /, '').trim()}</li>`)
+        .join('');
+    }
+
+    // Այլ բոլոր նոր տողերը <br>-ով փոխարինել
+    return String(value).replace(/\n/g, '<br>');
+  });
 }
 
 // Start OAuth flow
@@ -70,11 +89,18 @@ app.get("/auth-status", (req, res) => {
   }
 });
 
-// Main endpoint: HTML → PDF → Drive
+// Main endpoint: Template + Data → PDF → Drive
 app.post("/upload-pdf", async (req, res) => {
   console.log("Full request body:", req.body);
-  const { html, name, folderId } = req.body;
-  if (!html) return res.status(400).json({ error: "HTML content required" });
+  
+  const { 
+    name, region, community, age, status, interests, team, position, 
+    webinars, trips, tasks, leadershipAcademy, communityActivities, 
+    outsideActivities, feadback, giverPosition, giver, previousMonths,
+    previousCourses, previousTrips, previousVolunteering, previousTasks,
+    currentMonths, currentCourses, currentTrips, currentVolunteering,
+    currentTasks, date, fileName, folderId 
+  } = req.body;
 
   // Load tokens if needed
   if (!tokens && fs.existsSync("tokens.json")) {
@@ -82,60 +108,86 @@ app.post("/upload-pdf", async (req, res) => {
     oauth2Client.setCredentials(tokens);
   }
   if (!tokens) return res.status(401).json({ error: "Not authenticated", authUrl: "/auth" });
-  
-  const fileName = name ? `${name}.pdf` : `document-${Date.now()}.pdf`;
 
-  let browser;
   try {
-    browser = await puppeteer.launch({ headless: "new" });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0", timeout: 30000 });
+    // Read template.html file
+    const templatePath = path.join(process.cwd(), 'template.html');
+    if (!fs.existsSync(templatePath)) {
+      return res.status(400).json({ error: "template.html file not found" });
+    }
+    
+    const htmlTemplate = fs.readFileSync(templatePath, 'utf8');
+    
+    // Prepare data object for replacement
+    const templateData = {
+      name, region, community, age, status, interests, team, position,
+      webinars, trips, tasks, leadershipAcademy, communityActivities,
+      outsideActivities, feadback, giverPosition, giver, previousMonths,
+      previousCourses, previousTrips, previousVolunteering, previousTasks,
+      currentMonths, currentCourses, currentTrips, currentVolunteering,
+      currentTasks, date
+    };
 
-		await new Promise(resolve => setTimeout(resolve, 3000));
+    // Replace template placeholders with actual data
+    const processedHtml = replaceTemplate(htmlTemplate, templateData);
+    
+    const pdfFileName = fileName ? `${fileName}.pdf` : `document-${Date.now()}.pdf`;
 
-		await page.evaluate(() => {
-			const canvases = document.querySelectorAll("canvas");
-			canvases.forEach(canvas => {
-				const img = document.createElement("img");
-				img.src = canvas.toDataURL("image/png", 1.0); 
-				img.style.width = canvas.style.width || canvas.width + "px";
-				img.style.height = canvas.style.height || canvas.height + "px";
-				canvas.replaceWith(img); 
-			});
-		});
+    let browser;
+    try {
+      browser = await puppeteer.launch({ headless: "new" });
+      const page = await browser.newPage();
+      await page.setContent(processedHtml, { waitUntil: "networkidle0", timeout: 30000 });
 
-    const bodyHeight = await page.evaluate(() => document.body.scrollHeight);
-    const heightInMM = Math.max(297, (bodyHeight * 0.264583)); 
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
-    const pdfBuffer = await page.pdf({
-      printBackground: true,
-      margin: { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" },
-      width: "210mm",
-      height: `${heightInMM}mm`,
-    });
+      await page.evaluate(() => {
+        const canvases = document.querySelectorAll("canvas");
+        canvases.forEach(canvas => {
+          const img = document.createElement("img");
+          img.src = canvas.toDataURL("image/png", 1.0); 
+          img.style.width = canvas.style.width || canvas.width + "px";
+          img.style.height = canvas.style.height || canvas.height + "px";
+          canvas.replaceWith(img); 
+        });
+      });
 
-    const bufferStream = new PassThrough();
-    bufferStream.end(pdfBuffer);
+      const bodyHeight = await page.evaluate(() => document.body.scrollHeight);
+      const heightInMM = Math.max(297, (bodyHeight * 0.264583)); 
 
-    const fileMetadata = { name: fileName };
-    if (folderId) fileMetadata.parents = [folderId];
+      const pdfBuffer = await page.pdf({
+        printBackground: true,
+        margin: { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" },
+        width: "210mm",
+        height: `${heightInMM}mm`,
+      });
 
-    const file = await drive.files.create({
-      requestBody: fileMetadata,
-      media: { mimeType: "application/pdf", body: bufferStream },
-      fields: "id, webViewLink",
-    });
+      const bufferStream = new PassThrough();
+      bufferStream.end(pdfBuffer);
 
-    res.json({
-      success: true,
-      fileId: file.data.id,
-      viewLink: file.data.webViewLink,
-    });
+      const fileMetadata = { name: pdfFileName };
+      if (folderId) fileMetadata.parents = [folderId];
+
+      const file = await drive.files.create({
+        requestBody: fileMetadata,
+        media: { mimeType: "application/pdf", body: bufferStream },
+        fields: "id, webViewLink",
+      });
+
+      res.json({
+        success: true,
+        fileId: file.data.id,
+        viewLink: file.data.webViewLink,
+      });
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      res.status(500).json({ error: err.message });
+    } finally {
+      if (browser) await browser.close();
+    }
   } catch (err) {
-    console.error("Upload error:", err);
+    console.error("Template processing error:", err);
     res.status(500).json({ error: err.message });
-  } finally {
-    if (browser) await browser.close();
   }
 });
 
