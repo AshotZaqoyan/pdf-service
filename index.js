@@ -120,7 +120,7 @@ app.post("/upload-pdf", async (req, res) => {
     
     // Prepare data object for replacement
     const templateData = {
-      name, region, community, age, status, interests, team, position,
+      name, region, community, age, status, img, interests, team, position,
       webinars, trips, tasks, leadershipAcademy, communityActivities,
       outsideActivities, feadback, giverPosition, giver, previousMonths,
       previousCourses, previousTrips, previousVolunteering, previousTasks,
