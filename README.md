@@ -90,7 +90,7 @@ mkdir logs
 ### 5. Start with PM2:
 
 ```bash
-pm2 start ecosystem.config.js --env production
+pm2 start ecosystem.config.cjs --env production
 ```
 
 ### 6. Setup auto-start on system boot:

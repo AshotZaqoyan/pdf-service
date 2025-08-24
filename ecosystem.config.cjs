@@ -3,7 +3,7 @@ require('dotenv').config();
 module.exports = {
   apps: [{
     name: 'pdf-service',
-    script: 'server.js',
+    script: 'index.js',
     instances: 1,
     autorestart: true,
     watch: false,
