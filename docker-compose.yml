@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  pdf-service:
+    build: .
+    ports:
+      - "362104000:62104"
+    volumes:
+      - ./logs:/app/logs
+      - ./.env:/app/.env:ro
+      - ./tokens.json:/app/tokens.json
+    restart: unless-stopped
+    environment:
+      - PORT=3000
+    security_opt:
+      - seccomp:unconfined
+    cap_add:
+      - SYS_ADMIN
