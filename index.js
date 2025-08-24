@@ -135,7 +135,7 @@ app.post("/upload-pdf", async (req, res) => {
 
     let browser;
     try {
-      browser = await puppeteer.launch({ headless: "new" });
+      browser = await puppeteer.launch({ headless: "new",  executablePath: '/usr/bin/chromium' });
       const page = await browser.newPage();
       await page.setContent(processedHtml, { waitUntil: "networkidle0", timeout: 30000 });
 
