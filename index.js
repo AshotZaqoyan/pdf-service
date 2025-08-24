@@ -94,7 +94,7 @@ app.post("/upload-pdf", async (req, res) => {
   console.log("Full request body:", req.body);
   
   const { 
-    name, region, community, age, status, interests, team, position, 
+    name, region, community, age, status, img, interests, team, position, 
     webinars, trips, tasks, leadershipAcademy, communityActivities, 
     outsideActivities, feadback, giverPosition, giver, previousMonths,
     previousCourses, previousTrips, previousVolunteering, previousTasks,
